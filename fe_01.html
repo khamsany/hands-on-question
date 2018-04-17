@@ -3,81 +3,168 @@
 <head>
     <link rel="stylesheet" href="fe_01_style.css" type="text/css" />
 </head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="fe_01_style.css" type="text/css" />
+</head>
 <body>
     <div class="content">
         <div id="response-message" class="message">response message here</div>
         <div class="datagrid">
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Age</th>
-                    <th>Sex</th>
-                    <th>Action</th>
-                </tr>
-                <tr>
-                    <td>1</td>
-                    <td>John Smith</td>
-                    <td>31</td>
-                    <td>Male</td>
-                    <td>
-                        <a href="javascript:;" data-id="1">view</a>
-                        <a href="javascript:;" data-id="1">remove</a>
-                    </td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>Sara Johnson</td>
-                    <td>29</td>
-                    <td>Female</td>
-                    <td>
-                        <a href="javascript:;" data-id="2">view</a>
-                        <a href="javascript:;" data-id="2">remove</a>
-                    </td>
-                </tr>
+            <table id="gtable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Sex</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
             </table>
+            
         </div>
     </div>
 
+    <div class="fullmodal">
+        <div class="modal">
+            <p><b>ID:</b> <span id="pid"></span></p>
+            <p><b>Name:</b> <span id="pname"></span></p>
+            <p><b>Age:</b> <span id="page"></span></p>
+            <p><b>Sex:</b> <span id="psex"></span></p>
+        <br>
+            <button type="button">
+                Close
+            </button>
+        </div>
+
+    </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 <script>
 
+        var users = [];
     var App = function(){
-        var url = 'api';
+        var url = 'http://ui-grid.info/data/500_complex.json';
 
-        function view(event) {
-            var id = '??'; //please determine the id
-            $.ajax({
-                url: url + '/view/' +id,
-                data: data
-            }).done( function (data){
+        const MSGSPAN = "#response-message";
+        const SUCCESS = "success";
+        const FAILED = "failed";
+        
 
-            });
+        function view(e, event) {
+            // OR > var id = $(event.parentElement.parentElement).find(">:first-child").text(); //please determine the id
+            var id = e;
+            $.each(users, function(index, user){
+                if(id === user.id){
+                    $('.fullmodal').show();
+                    for(var n in user){
+                        $('#p'+n).text(user[n]);
+                    }
+                }
+            })
+            // OR
+            // $.ajax({
+            //     url: url + '/view/' +id,
+            //     data: data
+            // }).done( function (data){
+            // });
         }
 
-        function remove(event) {
-            var id = '??'; //please determine the id
-            $.ajax({
-                url: url + '/remove/' + id ,
-                data: data
-            }).done( function (data){
+        function remove(e) {
+            for(var i=0; i<users.length; i++)
+            {
+                var user = users[i];
+                if(e === user.id){
+                    var c = confirm("Do you want to delete this person: "+user.name);
+                    if(c){
+                        users.splice(i,1);
+                        createRows(users);
+                        showMessage("Person has been deleted.", SUCCESS);
+                        
+                    }
+                    return;
+                }
+            }
+            // OR
+            // var id = '??'; //please determine the id
+            // $.ajax({
+            //     url: url + '/remove/' + id ,
+            //     data: data
+            // }).done( function (data){
 
-            });
+            // });
         }
 
         function initialize() {
-            //
+            $.ajax({
+                url: url
+            }).done(function(data){
+                users=[];
+                for(i=0; i<data.length; i++){
+                    users.push({
+                        id:data[i].id,
+                        name:data[i].name,
+                        age:data[i].age,
+                        sex:data[i].gender,
+                    });
+                }
+                createRows(users);
+                showMessage("Request has been done", SUCCESS);
+            }).fail(function(err){
+                showMessage("Request is failed!", FAILED);
+                
+            })
+        }
+
+        function showMessage(msg, type){
+            $(MSGSPAN).addClass(type).text(msg).show();
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function hideMessage(){
+            $(MSGSPAN).hide();
+        }
+
+        hideMessage();
+        function createRows(users){
+            
+            var table =  $('<tbody>');
+            for(i=0; i<users.length; i++){
+                var row = $('<tr>');
+                for(var m in users[i]){
+                    row.append($('<td>').text(users[i][m]));
+                }
+                row
+                .append($('<td>')
+                    .append($("<a>").attr("href","#").attr("onclick","App().view("+users[i].id+", this)").text('View'))
+                    .append($("<a>").attr("href","#").attr("onclick","App().remove("+users[i].id+", this)").text('Remove'))
+                );
+                table.append(row);
+            }
+            $('#gtable tbody').remove();
+            $('#gtable').append(table);
+            
         }
 
         return {
-            //
+            initialize: initialize,
+            view: view,
+            remove: remove
+        };
+
+     
+    }
+    
+    App().initialize();
+
+    $('.fullmodal button').click(
+        function(e){
+            $('.fullmodal').hide();
         }
-
-    }();
-
-    $(function () {
-
-    });
+    )
 </script>
 </body>
 </html>
